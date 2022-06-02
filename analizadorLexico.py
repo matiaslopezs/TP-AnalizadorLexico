@@ -3,37 +3,49 @@
 # Alumno Matías López San Martín.
 """"
  Consideraciones:
-    valores prohibidos: ->, |, *, ., (, ), & (que simboliza a vacío)
+    valores prohibidos para los lexemas: ->, |, *, ., (, ), & (que simboliza a vacío)
 """
 
 # http://micaminomaster.com.co/grafo-algoritmo/todo-trabajar-grafos-python/
 
+# variables globales:
 noTerminales = [] # lista de no terminales
 terminales = [] # lista de terminales
 lista_operadores = ["|","*","."] # lista de operadores de Thompson
-estado = -1 #inicializamos los estados en -1
-    
+estado = 0 #inicializamos el contador de estados en 0
+dic_regexp = {} # diccionario donde guardaremos el estado de entrada y salida de cada expresion y subexpresion
+dic_AFN = {} # diccionario que contendra todos los AFN
+afn = {} # diccionario que contiene al AFN actual
+
 def get_nuevo_estado():
-    # retorna un número aún no utilizado para denominar un estado
+    # retorna un número aún no utilizado para denominar un estado (enviara a partir de 1, dejando a 0=origen sin asignar)
     return estado+1
 
-def thompson(op1, operador, op2):
+def thompson(op1, operador, op2, expresion):
 # 3. Convertimos las producciones en AFN con Thompson
 # función que transforma cada parte de la expresión regular en un AFN
     if operador != ".":
         nuevo_estado_i = get_nuevo_estado()
         nuevo_estado_f = get_nuevo_estado()
-        
+        # guardamos el estado inicial y final de cada expresion en el diccionario
+        dic_regexp[expresion] = [nuevo_estado_i,nuevo_estado_f]
+    
     # si el operador es igual a base significa que la entrada es solo un caracter
     if operador == "base":
-        return {nuevo_estado_i,op1,nuevo_estado_f}
+        dic_regexp[op1] = [nuevo_estado_i,nuevo_estado_f]
+        afn.append([nuevo_estado_i,op1,nuevo_estado_f])
+    # si es una concatenacion (.) entonces estado_f_op1 = estado_i_op2    
     elif operador == ".":
-        # estado_f_op1 = estado_i_op2
-        return {"estado_f_op1",op1,"estado_i_op2"}
+        # quitamos los antiguos valores del afn
+        afn.remove([dic_regexp[op1][0],op1,dic_regexp[op1][1]])
+        # actualizamos el diccionario
+        dic_regexp[op1][1] = dic_regexp[op2][0]
+        # agregamos los nuevos valores al afn
+        afn.append([dic_regexp[op1][0],op1,dic_regexp[op1][1]])
     elif operador == "|":
-        return {{nuevo_estado_i,"$","estado_i_op1"},{"estado_f_op1","$",nuevo_estado_f},{nuevo_estado_i,"$","estado_i_op2"},{"estado_f_op2","$",nuevo_estado_f}}
+        return {{nuevo_estado_i,"&","estado_i_op1"},{"estado_f_op1","&",nuevo_estado_f},{nuevo_estado_i,"&","estado_i_op2"},{"estado_f_op2","&",nuevo_estado_f}}
     elif operador == "*":
-        return {{nuevo_estado_i,"$",nuevo_estado_f},{nuevo_estado_i,"$","estado_i_op1"},{"estado_f_op1","$",nuevo_estado_f},{"estado_f_op1","$","estado_i_op1"}}
+        return {{nuevo_estado_i,"&",nuevo_estado_f},{nuevo_estado_i,"&","estado_i_op1"},{"estado_f_op1","&",nuevo_estado_f},{"estado_f_op1","&","estado_i_op1"}}
 
 def buscar_parentesis(expresion):
 # función que retorna true si encuentra un parentesis en la expresión
@@ -92,12 +104,12 @@ def evaluar_entrada_rec(expresion):
     if op1 != "":
         print("op1: {} operador: {} op2: {}".format(evaluar_entrada_rec(op1[::-1]),operador,evaluar_entrada_rec(op2[::-1])))
         # transformamos a un AFN la expresión
-        thompson(op1,operador,op2)
+        thompson(op1,operador,op2,expresion)
     # el 2do operando podría ser vacío (Ej: a*)
     else:
         print("op1: {} operador: {} ".format(evaluar_entrada_rec(op2[::-1]),operador))
         # transformamos a un AFN la expresión
-        thompson(op1,operador,"")
+        thompson(op1,operador,"",expresion)
     return expresion
     
 
@@ -126,5 +138,7 @@ def main():
     # primero debemos dividir la gramática de entrada en operandos
     for terminal in terminales:
         print(terminal)
+        # para lado izquierdo reiniciamos los diccionarios
+        dic_regexp = afn = {} 
         evaluar_entrada_rec(terminal)
 main()
