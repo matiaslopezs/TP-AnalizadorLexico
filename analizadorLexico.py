@@ -11,14 +11,29 @@
 noTerminales = [] # lista de no terminales
 terminales = [] # lista de terminales
 lista_operadores = ["|","*","."] # lista de operadores de Thompson
+estado = -1 #inicializamos los estados en -1
     
-def thompson(entrada):
-    nro_estado = 1
-    matriz = []
+def get_nuevo_estado():
+    # retorna un número aún no utilizado para denominar un estado
+    return estado+1
+
+def thompson(op1, operador, op2):
+# 3. Convertimos las producciones en AFN con Thompson
 # función que transforma cada parte de la expresión regular en un AFN
-    # cadena vacía
-    if entrada == "&":
-        pass
+    if operador != ".":
+        nuevo_estado_i = get_nuevo_estado()
+        nuevo_estado_f = get_nuevo_estado()
+        
+    # si el operador es igual a base significa que la entrada es solo un caracter
+    if operador == "base":
+        return {nuevo_estado_i,op1,nuevo_estado_f}
+    elif operador == ".":
+        # estado_f_op1 = estado_i_op2
+        return {"estado_f_op1",op1,"estado_i_op2"}
+    elif operador == "|":
+        return {{nuevo_estado_i,"$","estado_i_op1"},{"estado_f_op1","$",nuevo_estado_f},{nuevo_estado_i,"$","estado_i_op2"},{"estado_f_op2","$",nuevo_estado_f}}
+    elif operador == "*":
+        return {{nuevo_estado_i,"$",nuevo_estado_f},{nuevo_estado_i,"$","estado_i_op1"},{"estado_f_op1","$",nuevo_estado_f},{"estado_f_op1","$","estado_i_op1"}}
 
 def buscar_parentesis(expresion):
 # función que retorna true si encuentra un parentesis en la expresión
@@ -27,7 +42,7 @@ def buscar_parentesis(expresion):
     return False
 
 def evaluar_entrada_rec(expresion):
-# evaluamos la entrada y vamos dividiendo en operadores y operandos de forma recursiva
+# evaluamos la gramática de entrada y vamos dividiendo en operadores y operandos de forma recursiva
 
     print("nueva recursion: {}".format(expresion))
     
@@ -39,6 +54,8 @@ def evaluar_entrada_rec(expresion):
     # Caso Base: si la expresión es un caracter diferente a la lista de operadores de Thompson
     if expresion not in lista_operadores and len(expresion) == 1:
         print(expresion)
+        # transformamos la expresión en un AFN
+        thompson(expresion,"base","")
         return expresion
     # dividimos la expresión en operandos y operador
     op1 = op2 = operador = ""
@@ -46,21 +63,19 @@ def evaluar_entrada_rec(expresion):
     parentesis_cerrado = parentesis_abierto = 0
     # para cada caracter recorremos en reversa porque las operaciones deben hacerse de izquierda a derecha
     for caracter in expresion[::-1]:
-        print("entra aca: {}".format(caracter))
+        # print("entra aca: {}".format(caracter))
         # Debemos tener en cuentra procesar los paréntesis primero
         # como está recorriendo al revés buscamos primero el ")"
         if caracter == ")":
             parentesis_cerrado += 1
-            
         # luego vamos contando los parentesis abiertos
         elif caracter == "(":
-            parentesis_abierto += 1
-            
+            parentesis_abierto += 1    
         # caso en el que venga un operador, lo guardamos y empezamos a cargar el siguiente operando
         elif caracter in lista_operadores and not band:
-            print(parentesis_abierto)
-            print(parentesis_cerrado)    
-            print("se encuentra operador")
+            # print(parentesis_abierto)
+            # print(parentesis_cerrado)    
+            # print("se encuentra operador")
             # solamente si se cerraron todos los paréntesis pasamos al siguiente operando
             if parentesis_abierto == parentesis_cerrado:
                 operador = caracter
@@ -76,10 +91,13 @@ def evaluar_entrada_rec(expresion):
     # evaluamos y desarmamos cada expresion
     if op1 != "":
         print("op1: {} operador: {} op2: {}".format(evaluar_entrada_rec(op1[::-1]),operador,evaluar_entrada_rec(op2[::-1])))
+        # transformamos a un AFN la expresión
+        thompson(op1,operador,op2)
     # el 2do operando podría ser vacío (Ej: a*)
-    # else:
     else:
         print("op1: {} operador: {} ".format(evaluar_entrada_rec(op2[::-1]),operador))
+        # transformamos a un AFN la expresión
+        thompson(op1,operador,"")
     return expresion
     
 
@@ -105,9 +123,8 @@ def main():
         entrada = input()
 
     # 2. Crear el AFN con Thompson
-    # primero debemos dividir la entrada en operandos
+    # primero debemos dividir la gramática de entrada en operandos
     for terminal in terminales:
         print(terminal)
         evaluar_entrada_rec(terminal)
-
 main()
