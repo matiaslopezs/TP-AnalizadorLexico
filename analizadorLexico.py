@@ -24,6 +24,7 @@ def get_nuevo_estado():
 def thompson(op1, operador, op2, expresion):
 # 3. Convertimos las producciones en AFN con Thompson
 # función que transforma cada parte de la expresión regular en un AFN
+    # solo en los estados de concatenacion el estado inicial y final no seran nuevos estados
     if operador != ".":
         nuevo_estado_i = get_nuevo_estado()
         nuevo_estado_f = get_nuevo_estado()
@@ -43,12 +44,18 @@ def thompson(op1, operador, op2, expresion):
         # agregamos los nuevos valores al afn
         afn.append([dic_regexp[op1][0],op1,dic_regexp[op1][1]])
     elif operador == "|":
-        return {{nuevo_estado_i,"&","estado_i_op1"},{"estado_f_op1","&",nuevo_estado_f},{nuevo_estado_i,"&","estado_i_op2"},{"estado_f_op2","&",nuevo_estado_f}}
+        afn.append([nuevo_estado_i,"&",dic_regexp[op1][0]])
+        afn.append([dic_regexp[op1][1],"&",nuevo_estado_f])
+        afn.append([nuevo_estado_i,"&",dic_regexp[op2][0]])
+        afn.append([dic_regexp[op2][1],"&",nuevo_estado_f])
     elif operador == "*":
-        return {{nuevo_estado_i,"&",nuevo_estado_f},{nuevo_estado_i,"&","estado_i_op1"},{"estado_f_op1","&",nuevo_estado_f},{"estado_f_op1","&","estado_i_op1"}}
+        afn.append([nuevo_estado_i,"&",nuevo_estado_f])
+        afn.append([nuevo_estado_i,"&",dic_regexp[op1][0]])
+        afn.append([dic_regexp[op1][1],"&",nuevo_estado_f])
+        afn.append([dic_regexp[op1][1],"&",dic_regexp[op1][0]])
 
 def buscar_parentesis(expresion):
-# función que retorna true si encuentra un parentesis en la expresión
+# función que retorna true si encuentra un parentesis en la expresión (la gramatica de entrada)
     if "(" in expresion or ")" in expresion:
         return True
     return False
@@ -141,4 +148,8 @@ def main():
         # para lado izquierdo reiniciamos los diccionarios
         dic_regexp = afn = {} 
         evaluar_entrada_rec(terminal)
+        print("diccionario:")
+        print(dic_regexp)
+        print("AFN:")
+        print(afn)
 main()
