@@ -9,7 +9,6 @@
 # http://micaminomaster.com.co/grafo-algoritmo/todo-trabajar-grafos-python/
 
 import math
-from typing import final
 
 # variables globales:
 noTerminales = [] # lista de no terminales
@@ -64,8 +63,6 @@ def get_AFD_minimo(dtran_afd,simbolos):
             if adentro != []:
                 pi_nueva.append(adentro)
     print("end")
-
-
 
 def get_key_valor_afd(dic_AFD,valor):
 # funcion que devuelve la clave del diccionario si el valor de parámetro está en la lista del dic.
