@@ -19,6 +19,26 @@ dic_regexp = {} # diccionario donde guardaremos el estado de entrada y salida de
 dic_AFN = {} # diccionario que contendra todos los AFN
 afn = [] # lista que contiene al AFN actual
 
+def get_grupo(elemento, lista_grupos):
+# retorna el grupo en una lista de grupos al que pertenece un elemento
+    for grupo in lista_grupos:
+        if elemento in grupo:
+            return grupo
+
+def comparar(estado,estado_comp,pi,dtran_afd,simbolos):
+# función que compara si dos estados en un AFD van a los mismos grupos con todos sus símbolos
+    # valor de retorno
+    iguales = True
+    # cargamos los valores en el diccionario de ambos estados
+    valor_estado = dtran_afd[estado]
+    valor_comp = dtran_afd[estado_comp]
+    # para cada símbolo de entrada
+    for i in range(len(simbolos)):
+        # si los estados no apuntan a estados del mismo grupo entonces retornaremos falso
+        if get_grupo(valor_estado[i][1],pi) != get_grupo(valor_comp[i][1],pi):
+            iguales = False
+    return iguales
+
 def get_AFD_minimo(dtran_afd,simbolos):
 # función que minimiza el AFD. Recibe la matríz del AFD como parámetro
     # empezamos dividiendo los estados en dos grupos
@@ -31,6 +51,8 @@ def get_AFD_minimo(dtran_afd,simbolos):
     pi.append(f)
     pi.append(s_f)
     pi_nueva = []
+    # cargamos todos los estados de pi en una sola lista sin importar los grupos
+    lista_estados_pi = f + s_f
     # bandera para que no copie la primera pi_nueva vacía en pi
     band = False
     # mientras pi y pi_nueva sean diferentes (mientras haya cambios en pi)
@@ -44,25 +66,25 @@ def get_AFD_minimo(dtran_afd,simbolos):
         band = True
         # para cada grupo en pi
         for grupo in pi:
-            # definimos un set donde guardaremos los elementos que se queden fuera del grupo
-            afuera = set()
-            # para cada simbolo de entrada
-            for simbolo in simbolos:
-                # para cada elemento en el grupo
-                for elemento in grupo:
-                    for valor in dtran_afd[elemento]:
-                        if valor[0] == simbolo:
-                            # si el elemento apunta no a otro estado dentro de su grupo se queda afuera en otro grupo
-                            if valor[1] not in grupo:
-                                afuera.add(elemento)
-            # valores que apuntan a estados dentro del grupo
-            adentro = [x for x in grupo if x not in afuera]
-            # agregamos los nuevos grupos a la nueva pi
-            if afuera != []:
-                pi_nueva.append(list(afuera))
-            if adentro != []:
-                pi_nueva.append(adentro)
-    print("end")
+            # para cada estado en el grupo
+            for estado in grupo:
+                # cargamos el primer estado en la lista
+                lista = [estado]
+                # comparamos con los demas elementos del grupo
+                for estado_comp in grupo:
+                    if estado_comp != estado:
+                        # si van a los mismos grupos por cada simbolo de entrada
+                        if comparar(estado,estado_comp,pi,dtran_afd,simbolos):
+                            # añadimos al estado a comparar a la lista junto al estado actual
+                            lista.append(estado_comp)
+                # ordenamos la lista
+                lista.sort()
+                # luego añadimos la lista a pi nueva si es que el grupo de la lista aún no se encuentra
+                if lista not in pi_nueva:
+                    pi_nueva.append(lista)
+                print("debug")
+            print("debug")
+
 
 def get_key_valor_afd(dic_AFD,valor):
 # funcion que devuelve la clave del diccionario si el valor de parámetro está en la lista del dic.
