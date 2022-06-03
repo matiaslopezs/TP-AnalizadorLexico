@@ -82,8 +82,18 @@ def get_AFD_minimo(dtran_afd,simbolos):
                 # luego añadimos la lista a pi nueva si es que el grupo de la lista aún no se encuentra
                 if lista not in pi_nueva:
                     pi_nueva.append(lista)
-                print("debug")
-            print("debug")
+    # declaramos un dic donde guardaremos el AFD mínimo
+    afd_minimo = {}
+    # ya tenemos los estados, ahora veremos las relaciones entre ellos
+    for elemento in pi:
+        # veremos el primer elemento de cada grupo a que estado va por cada símbolo de entrada
+        elem_afd = dtran_afd[elemento[0]]
+        for i in range(len(simbolos)):
+            # guardamos en el nuevo dic los valores
+            if str(elemento) not in afd_minimo.keys():
+                afd_minimo[str(elemento)] = []
+            afd_minimo[str(elemento)].append([simbolos[i],get_grupo(elem_afd[i][1],pi)])
+    return afd_minimo
 
 
 def get_key_valor_afd(dic_AFD,valor):
