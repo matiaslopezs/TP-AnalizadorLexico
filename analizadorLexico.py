@@ -8,10 +8,10 @@
 
 # http://micaminomaster.com.co/grafo-algoritmo/todo-trabajar-grafos-python/
 
-# variables globales:
 import math
+from typing import final
 
-
+# variables globales:
 noTerminales = [] # lista de no terminales
 terminales = [] # lista de terminales
 lista_operadores = ["|","*","."] # lista de operadores de Thompson
@@ -20,12 +20,60 @@ dic_regexp = {} # diccionario donde guardaremos el estado de entrada y salida de
 dic_AFN = {} # diccionario que contendra todos los AFN
 afn = [] # lista que contiene al AFN actual
 
+def get_AFD_minimo(dtran_afd,simbolos):
+# función que minimiza el AFD. Recibe la matríz del AFD como parámetro
+    # empezamos dividiendo los estados en dos grupos
+    # estados finales
+    f = dtran_afd["final"]
+    # los demás estados (cargamos todos los estados en la tabla menos los finales y los valores origen y final)
+    s_f = [estado for estado in dtran_afd.keys() if estado not in f and estado != 'origen' and estado != 'final']
+    # guardamos todos los grupos en pi
+    pi = []
+    pi.append(f)
+    pi.append(s_f)
+    pi_nueva = []
+    # bandera para que no copie la primera pi_nueva vacía en pi
+    band = False
+    # mientras pi y pi_nueva sean diferentes (mientras haya cambios en pi)
+    while pi != pi_nueva:
+        # en este if solo no entrará la primera vez
+        if band:
+            # copiamos por referencia los valores de pi_nueva en pi
+            pi = pi_nueva.copy()
+            pi_nueva = []
+        # activamos la bandera para el resto de las iteraciones
+        band = True
+        # para cada grupo en pi
+        for grupo in pi:
+            # definimos un set donde guardaremos los elementos que se queden fuera del grupo
+            afuera = set()
+            # para cada simbolo de entrada
+            for simbolo in simbolos:
+                # para cada elemento en el grupo
+                for elemento in grupo:
+                    for valor in dtran_afd[elemento]:
+                        if valor[0] == simbolo:
+                            # si el elemento apunta no a otro estado dentro de su grupo se queda afuera en otro grupo
+                            if valor[1] not in grupo:
+                                afuera.add(elemento)
+            # valores que apuntan a estados dentro del grupo
+            adentro = [x for x in grupo if x not in afuera]
+            # agregamos los nuevos grupos a la nueva pi
+            if afuera != []:
+                pi_nueva.append(list(afuera))
+            if adentro != []:
+                pi_nueva.append(adentro)
+    print("end")
+
+
+
 def get_key_valor_afd(dic_AFD,valor):
 # funcion que devuelve la clave del diccionario si el valor de parámetro está en la lista del dic.
+    respuesta = []
     for key,lista_estados in dic_AFD.items():
         if valor in lista_estados:
-            return key
-    return -1 
+            respuesta.append(key)
+    return respuesta
 
 def obtener_key(diccionario,valor):
 #función para obtener el key de un diccionario, teniendo el valor como dato
@@ -257,5 +305,6 @@ afn_test = [[0,"$",1],[1,"$",2],[1,"$",4],[2,"a",3],[4,"b",5],[3,"$",6],[5,"$",6
 lista_simbolos = ["a","b"]
 # obtenemos la matriz del afd
 dtran_afd = get_AFD(afn_test,lista_simbolos)
-print(dtran_afd)
+# print(dtran_afd)
+get_AFD_minimo(dtran_afd, lista_simbolos)
 print("final")
