@@ -9,17 +9,111 @@
 # http://micaminomaster.com.co/grafo-algoritmo/todo-trabajar-grafos-python/
 
 # variables globales:
+import math
+
+
 noTerminales = [] # lista de no terminales
 terminales = [] # lista de terminales
 lista_operadores = ["|","*","."] # lista de operadores de Thompson
 estado = 0 #inicializamos el contador de estados en 0
 dic_regexp = {} # diccionario donde guardaremos el estado de entrada y salida de cada expresion y subexpresion
 dic_AFN = {} # diccionario que contendra todos los AFN
-afn = {} # diccionario que contiene al AFN actual
+afn = [] # lista que contiene al AFN actual
+
+def get_key_valor_afd(dic_AFD,valor):
+# funcion que devuelve la clave del diccionario si el valor de parámetro está en la lista del dic.
+    for key,lista_estados in dic_AFD.items():
+        if valor in lista_estados:
+            return key
+    return -1 
+
+def obtener_key(diccionario,valor):
+#función para obtener el key de un diccionario, teniendo el valor como dato
+    for key,value in diccionario.items():
+        if value == valor:
+            return key
+    return -1
+
+def mover(afn,estado,simbolo):
+# función que implementa la función mover del AFD
+    resultado = []
+    for transicion in afn:
+        # si va desde el estado actual con el simbolo entonces añadimos a resultado
+        if transicion[0] == estado and transicion[1] == simbolo:
+            resultado.append(transicion[2])
+    return resultado
+
+def cerradura_epsilon(afn,estado):
+# función que implementa las cerraduras epsilon del AFD
+    # por la identidad el primer estado que puede alcanzar es el mismo
+    resultado = [estado]
+    for transicion in afn:
+        # si va desde el estado actual con el símbolo entonces es parte de la respuesta
+        if transicion[0] == estado and transicion[1] == '$':
+            resultado += cerradura_epsilon(afn,transicion[2])
+    # retornamos el resultado
+    return resultado
+
+def get_AFD(afn,lista_simbolos):
+# función que transforma un AFN en un AFD. Recibe como parámetros al AFN y a los terminales del AFN
+    # dtran es la matriz del AFD, en este caso será un diccionario de listas
+    dtran = {}
+    menor_estado = afn[0][0]
+    mayor_estado = -math.inf
+    # primero inicializamos destados con el estado inicial
+    destados = []
+    destados.append(cerradura_epsilon(afn,menor_estado))
+    # guardaremos los nuevos estados en un diccionario
+    nuevo_estado = estado_origen = 0
+    destados[0].sort()
+    dic_AFD = {nuevo_estado: destados[0]}
+    # mientras haya un estado sin procesar seguimos
+    while len(destados)>0:
+        estado_origen = obtener_key(dic_AFD,destados[0])
+        lista_estados = destados.pop(0)
+        # para cada simbolo de entrada
+        for simbolo in lista_simbolos:
+            # aplicamos la funcion mover a todos los estados de la lista
+            estados_mover = []
+            for estado in lista_estados:
+                # para cada estado en la lista aplicamos la función mover
+                estados_mover += mover(afn,estado,simbolo)
+                # aprovechamos y calculamos el estado mayor del afn
+                if mayor_estado < estado:
+                    mayor_estado = estado
+                    
+            u = []
+            # para cada estado devuelto por mover, agregamos a u
+            for estado_mov in estados_mover:
+                u += cerradura_epsilon(afn,estado_mov)
+            u.sort()
+            # si es un nuevo estado
+            if u not in dic_AFD.values():
+                nuevo_estado += 1
+                estado_destino = nuevo_estado
+                # lo guardamos en el diccionario
+                dic_AFD[nuevo_estado]= u
+                # lo metemos en destados para procesarlo
+                destados.append(u)
+            # si es un estado conocido
+            else:
+                # obtenemos el id
+                estado_destino = obtener_key(dic_AFD,u)
+            # cargamos al resultado el valor al que el estado origen lleva desde ese simbolo
+            if estado_origen not in dtran.keys():
+                dtran[estado_origen] = []
+            dtran[estado_origen].append([simbolo,estado_destino])
+    # por último guardamos en el diccionario cuales son el origen y el final del AFD
+    dtran["origen"] = get_key_valor_afd(dic_AFD,menor_estado)
+    dtran["final"] = get_key_valor_afd(dic_AFD,mayor_estado)
+    # print(dtran)
+    return dtran
 
 def get_nuevo_estado():
     # retorna un número aún no utilizado para denominar un estado (enviara a partir de 1, dejando a 0=origen sin asignar)
-    return estado+1
+    global estado
+    estado += 1
+    return estado
 
 def thompson(op1, operador, op2, expresion):
 # 3. Convertimos las producciones en AFN con Thompson
@@ -28,7 +122,7 @@ def thompson(op1, operador, op2, expresion):
     if operador != ".":
         nuevo_estado_i = get_nuevo_estado()
         nuevo_estado_f = get_nuevo_estado()
-        # guardamos el estado inicial y final de cada expresion en el diccionario
+        # guardamos el estado inicial y final de cada expresion en el diccionario de regex
         dic_regexp[expresion] = [nuevo_estado_i,nuevo_estado_f]
     
     # si el operador es igual a base significa que la entrada es solo un caracter
@@ -43,6 +137,8 @@ def thompson(op1, operador, op2, expresion):
         dic_regexp[op1][1] = dic_regexp[op2][0]
         # agregamos los nuevos valores al afn
         afn.append([dic_regexp[op1][0],op1,dic_regexp[op1][1]])
+        # guardamos los estados inicial y final en el diccionario de regex
+        dic_regexp[expresion] = [dic_regexp[op1][0],dic_regexp[op2][1]]
     elif operador == "|":
         afn.append([nuevo_estado_i,"&",dic_regexp[op1][0]])
         afn.append([dic_regexp[op1][1],"&",nuevo_estado_f])
@@ -74,7 +170,7 @@ def evaluar_entrada_rec(expresion):
     if expresion not in lista_operadores and len(expresion) == 1:
         print(expresion)
         # transformamos la expresión en un AFN
-        thompson(expresion,"base","")
+        thompson(expresion,"base","",expresion)
         return expresion
     # dividimos la expresión en operandos y operador
     op1 = op2 = operador = ""
@@ -100,21 +196,24 @@ def evaluar_entrada_rec(expresion):
                 operador = caracter
                 band = True
                 continue
-        # mientras la bandera esté apagada estaremos cargando el primer operando
+        # mientras la bandera esté apagada estaremos cargando el segundo operando (ya que va en reversa)
         if not band: 
-            op1 += caracter
-        # caso contrario vamos cargando el segundo operando
-        else:
             op2 += caracter
+        # caso contrario vamos cargando el primer operando
+        else:
+            op1 += caracter
+    # volvemos a dar la vuelta a los operandos
+    op1 = op1[::-1]
+    op2 = op2[::-1]
     print("al salir op1: {} oper: {} op2: {}".format(op1,operador,op2))
     # evaluamos y desarmamos cada expresion
     if op1 != "":
-        print("op1: {} operador: {} op2: {}".format(evaluar_entrada_rec(op1[::-1]),operador,evaluar_entrada_rec(op2[::-1])))
+        print("op1: {} operador: {} op2: {}".format(evaluar_entrada_rec(op1),operador,evaluar_entrada_rec(op2)))
         # transformamos a un AFN la expresión
         thompson(op1,operador,op2,expresion)
     # el 2do operando podría ser vacío (Ej: a*)
     else:
-        print("op1: {} operador: {} ".format(evaluar_entrada_rec(op2[::-1]),operador))
+        print("op1: {} operador: {} ".format(evaluar_entrada_rec(op2),operador))
         # transformamos a un AFN la expresión
         thompson(op1,operador,"",expresion)
     return expresion
@@ -152,4 +251,11 @@ def main():
         print(dic_regexp)
         print("AFN:")
         print(afn)
-main()
+
+# main()
+afn_test = [[0,"$",1],[1,"$",2],[1,"$",4],[2,"a",3],[4,"b",5],[3,"$",6],[5,"$",6],[6,"$",7],[6,"$",1],[0,"$",7],[7,"a",8],[8,"b",9],[9,"b",10]]
+lista_simbolos = ["a","b"]
+# obtenemos la matriz del afd
+dtran_afd = get_AFD(afn_test,lista_simbolos)
+print(dtran_afd)
+print("final")
