@@ -19,6 +19,36 @@ dic_regexp = {} # diccionario donde guardaremos el estado de entrada y salida de
 dic_AFN = {} # diccionario que contendra todos los AFN
 afn = [] # lista que contiene al AFN actual
 
+def eliminar_estados_inalcanzables(afd_min,cant_simbolos):
+# función que se encarga de eliminar los estados redudantes del afd para que sea minimo
+    # realizamos una copia del afd para ir verificando si existen modificaciones
+    afd_min_new = afd_min.copy()
+    band = True
+    while afd_min != afd_min_new or band:
+        # if al que entramos solo una vez para apagar la bandera
+        if band:
+            band = False
+        else:
+            afd_min = afd_min_new.copy()
+        # verificaremos cada clave..
+        for clave in afd_min.keys():
+            alcanzable = False
+            # el estado de origen es un estado inalcanzable pero es la excepción a la regla
+            if clave != afd_min['origen'] and clave != 'origen' and clave != 'final':
+                # ..con todos los demás elementos
+                for elemento in afd_min.items():
+                    # no nos interesa si el elemento se apunta a si mismo, tampoco los datos de origen y final en el diccionario
+                    if elemento[0] != clave and elemento[0] != 'origen' and elemento[0] != 'final':
+                        for i in range(cant_simbolos):
+                            # si algún elemento llega a la clave, entonces es alcanzable
+                            if str(elemento[1][i][1]) == clave:
+                                alcanzable = True
+                # si el elemento es inalcanzable lo removemos del afd minimo
+                if not alcanzable:
+                    afd_min_new.pop(clave)
+    #retornamos el afd minimo sin estados inalcanzables
+    return afd_min_new
+
 def get_grupo(elemento, lista_grupos):
 # retorna el grupo en una lista de grupos al que pertenece un elemento
     for grupo in lista_grupos:
@@ -343,5 +373,17 @@ lista_simbolos = ["a","b"]
 # obtenemos la matriz del afd
 dtran_afd = get_AFD(afn_test,lista_simbolos)
 # print(dtran_afd)
-get_AFD_minimo(dtran_afd, lista_simbolos)
+# afd_min = get_AFD_minimo(dtran_afd, lista_simbolos)
+afd_min = {
+    'A': [['a','B'],['b','B']],
+    'B': [['a','B'],['b','C']],
+    'C': [['a','B'],['b','C']],
+    'D': [['a','B'],['b','C']],
+    'E': [['a','B'],['b','E']],
+    'F': [['a','B'],['b','E']],
+    'origen': 'A',
+    'final':['D']
+}
+# eliminamos los estados inalcanzables
+eliminar_estados_inalcanzables(afd_min,len(lista_simbolos))
 print("final")
