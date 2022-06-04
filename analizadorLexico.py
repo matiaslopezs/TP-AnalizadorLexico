@@ -93,6 +93,14 @@ def get_AFD_minimo(dtran_afd,simbolos):
             if str(elemento) not in afd_minimo.keys():
                 afd_minimo[str(elemento)] = []
             afd_minimo[str(elemento)].append([simbolos[i],get_grupo(elem_afd[i][1],pi)])
+    # señalamos al diccionario el estado inicial y los finales
+    # tenemos el inicial del afd no minimizado, entonces buscamos en que grupo está del afd minimo
+    afd_minimo['origen'] = str(get_grupo(dtran_afd['origen'][0],pi))
+    # mismo proceso con la lista de estados finales
+    for estado_final in dtran_afd['final']:
+        if 'final' not in afd_minimo.keys():
+            afd_minimo['final'] = []
+        afd_minimo['final'].append(str(get_grupo(estado_final,pi)))
     return afd_minimo
 
 
