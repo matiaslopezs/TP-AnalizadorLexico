@@ -44,7 +44,6 @@ def simulador_afd(afd_min,entrada):
         print('entrada válida')
     else:
         print('entrada inválida')
-    print('end')
 
 def eliminar_estados_inalcanzables(afd_min,cant_simbolos):
 # función que se encarga de eliminar los estados redudantes del afd para que sea minimo
@@ -413,6 +412,9 @@ afd_min = get_AFD_minimo(dtran_afd, lista_simbolos)
 # }
 # eliminamos los estados inalcanzables
 eliminar_estados_inalcanzables(afd_min,len(lista_simbolos))
-entrada_test='ababb'
-simulador_afd(afd_min,entrada_test)
+entrada_test='ababb abb ababa baabb'
+for palabra in entrada_test.split():
+    print(palabra)
+    simulador_afd(afd_min,palabra)
+    print('___')
 print("final")
