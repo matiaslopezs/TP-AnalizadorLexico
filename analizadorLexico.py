@@ -15,9 +15,7 @@ noTerminales = [] # lista de no terminales
 terminales = [] # lista de terminales
 lista_operadores = ["|","*","."] # lista de operadores de Thompson
 estado = 0 #inicializamos el contador de estados en 0
-dic_regexp = {} # diccionario donde guardaremos el estado de entrada y salida de cada expresion y subexpresion
 dic_AFN = {} # diccionario que contendra todos los AFN
-afn = [] # lista que contiene al AFN actual
 
 
 def simulador_afd(afd_min,entrada):
@@ -251,46 +249,71 @@ def get_AFD(afn,lista_simbolos):
     # print(dtran)
     return dtran
 
-def get_nuevo_estado():
+def get_nuevo_estado(ultimo_estado = estado):
     # retorna un número aún no utilizado para denominar un estado (enviara a partir de 1, dejando a 0=origen sin asignar)
+    # el parametro ultimo estado es el ultimo estado conocido, de no mandarlo es la variable global estado
     global estado
     estado += 1
+    # si estado es menor al último estaado conocido entonces lo modificamos
+    if estado <= ultimo_estado:
+        estado = ultimo_estado+1
     return estado
 
 def thompson(op1, operador, op2, afn1, afn2):
-# 3. Convertimos las producciones en AFN con Thompson
+# Convertimos las producciones en AFN con Thompson
 # función que transforma cada parte de la expresión regular en un AFN
-    # solo en los estados de concatenacion el estado inicial y final no seran nuevos estados
-    if operador != ".":
-        nuevo_estado_i = get_nuevo_estado()
-        nuevo_estado_f = get_nuevo_estado()
-        # guardamos el estado inicial y final de cada expresion en el diccionario de regex
-        dic_regexp[expresion] = [nuevo_estado_i,nuevo_estado_f]
-    
+    nuevo_afn = []
     # si el operador es igual a base significa que la entrada es solo un caracter
     if operador == "base":
-        dic_regexp[op1] = [nuevo_estado_i,nuevo_estado_f]
-        afn.append([nuevo_estado_i,op1,nuevo_estado_f])
-    # si es una concatenacion (.) entonces estado_f_op1 = estado_i_op2    
+        nuevo_estado_i = get_nuevo_estado()
+        nuevo_estado_f = get_nuevo_estado()
+        nuevo_afn.append([nuevo_estado_i,op1,nuevo_estado_f])
+    # si es una concatenacion (.) entonces estado_i_op2 = estado_f_op1   
     elif operador == ".":
-        # quitamos los antiguos valores del afn
-        afn.remove([dic_regexp[op1][0],op1,dic_regexp[op1][1]])
-        # actualizamos el diccionario
-        dic_regexp[op1][1] = dic_regexp[op2][0]
-        # agregamos los nuevos valores al afn
-        afn.append([dic_regexp[op1][0],op1,dic_regexp[op1][1]])
-        # guardamos los estados inicial y final en el diccionario de regex
-        dic_regexp[expresion] = [dic_regexp[op1][0],dic_regexp[op2][1]]
+        # cargamos cada elemento del primer afn exactamente como está
+        for elemento1 in afn1:
+            nuevo_afn.append(elemento1)
+        # a cada estado del afn2 le vamos sumando +1 (empezando desde el último estado del afn1)
+        valor = afn1[-1][2]
+        for elemento2 in afn2:
+            elemento2[0] = valor
+            valor += 1
+            elemento2[2] = valor
+            valor += 1
+            nuevo_afn.append(elemento2)
     elif operador == "|":
-        afn.append([nuevo_estado_i,"&",dic_regexp[op1][0]])
-        afn.append([dic_regexp[op1][1],"&",nuevo_estado_f])
-        afn.append([nuevo_estado_i,"&",dic_regexp[op2][0]])
-        afn.append([dic_regexp[op2][1],"&",nuevo_estado_f])
+        # agregamos dos transiciones vacías al inicio al primer estado de ambos afn
+        nuevo_afn.append([afn1[0][0],"&",afn1[0][0]+1])
+        nuevo_afn.append([afn1[0][0],"&",afn2[0][0]+1])
+        # sumamos +1 a todos los estados de ambos afn y los añadimos al nuevo afn
+        for elemento1 in afn1:
+            elemento1[0] += 1
+            elemento1[2] += 1
+            nuevo_afn.append(elemento1)
+        for elemento2 in afn2:
+            elemento2[0] += 1
+            elemento2[2] += 1
+            nuevo_afn.append(elemento2)
+        # agregamos transiciones vacías del ultimo estado de ambos afn a un nuevo estado final
+        nuevo_estado_f = get_nuevo_estado(afn2[-1][2])
+        nuevo_afn.append([afn1[-1][2],"&",nuevo_estado_f])
+        nuevo_afn.append([afn2[-1][2],"&",nuevo_estado_f])
     elif operador == "*":
-        afn.append([nuevo_estado_i,"&",nuevo_estado_f])
-        afn.append([nuevo_estado_i,"&",dic_regexp[op1][0]])
-        afn.append([dic_regexp[op1][1],"&",nuevo_estado_f])
-        afn.append([dic_regexp[op1][1],"&",dic_regexp[op1][0]])
+        # agregamos una transicion vacía al inicio al primer estado del afn
+        nuevo_afn.append([afn1[0][0],"&",afn1[0][0]+1])
+        # sumamos +1 a todos los estados del afn y los añadimos al nuevo afn
+        for elemento in afn1:
+            elemento[0] += 1
+            elemento[2] += 1
+            nuevo_afn.append(elemento)
+        # agregamos una transicion vacia del ultimo al primer estado del viejo afn
+        nuevo_afn.append([afn1[-1][2],"&",afn1[0][0]])
+        # agregamos un nuevo estado final y una transicion vacía del nuevo primer estado al nuevo estado final
+        nuevo_estado_f = get_nuevo_estado(afn1[-1][2])
+        nuevo_afn.append([afn1[0][0]-1,"&",nuevo_estado_f])
+        # agregamos una transicion vacia del ultimo estado del viejo afn al ultimo estado del nuevo afn
+        nuevo_afn.append([afn1[-1][2],"&",nuevo_estado_f])
+    return nuevo_afn
 
 def buscar_parentesis(expresion):
 # función que retorna true si encuentra un parentesis en la expresión (la gramatica de entrada)
@@ -312,8 +335,8 @@ def evaluar_entrada_rec(expresion):
     if expresion not in lista_operadores and len(expresion) == 1:
         print(expresion)
         # transformamos la expresión en un AFN
-        # thompson(expresion,"base",None,None,None)
-        return expresion
+        nuevo_afn = thompson(expresion,"base",None,None,None)
+        return expresion,nuevo_afn
     # dividimos la expresión en operandos y operador
     op1 = op2 = operador = ""
     band = band_asterisco = False
@@ -359,20 +382,19 @@ def evaluar_entrada_rec(expresion):
     print("al salir op1: {} oper: {} op2: {}".format(op1,operador,op2))
     # evaluamos y desarmamos cada expresion
     if op1 != "":
-        exp1 = evaluar_entrada_rec(op1) 
-        exp2 = evaluar_entrada_rec(op2)
+        exp1,afn1 = evaluar_entrada_rec(op1) 
+        exp2,afn2 = evaluar_entrada_rec(op2)
         print("op1: {} operador: {} op2: {}".format(exp1,operador,exp2))
         # transformamos a un AFN la expresión
-        # nuevo_afn = thompson(op1,operador,op2,afn1,afn2)
+        nuevo_afn = thompson(op1,operador,op2,afn1,afn2)
     # el 2do operando podría ser vacío (Ej: a*)
     else: 
-        exp2 = evaluar_entrada_rec(op2)
+        exp2,afn2 = evaluar_entrada_rec(op2)
         print("op1: {} operador: {} ".format(exp2,operador))
         # transformamos a un AFN la expresión
-        # nuevo_afn = thompson(op2,operador,None,None,afn2)
-    return expresion#,nuevo_afn
+        nuevo_afn = thompson(op2,operador,None,afn2,None)
+    return expresion,nuevo_afn
     
-
 
 def main():
     print("Bienvenido al analizador léxico")
@@ -397,12 +419,10 @@ def main():
     # 2. Crear el AFN con Thompson
     # primero debemos dividir la gramática de entrada en operandos
     for terminal in terminales:
-        print(terminal)
         # para lado izquierdo reiniciamos los diccionarios
-        dic_regexp = afn = {} 
-        evaluar_entrada_rec(terminal)
-        print("diccionario:")
-        print(dic_regexp)
+        expres,afn = evaluar_entrada_rec(terminal)
+        print("Expresión:")
+        print(expres)
         print("AFN:")
         print(afn)
 
