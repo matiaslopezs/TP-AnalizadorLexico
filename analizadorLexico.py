@@ -19,6 +19,33 @@ dic_regexp = {} # diccionario donde guardaremos el estado de entrada y salida de
 dic_AFN = {} # diccionario que contendra todos los AFN
 afn = [] # lista que contiene al AFN actual
 
+
+def simulador_afd(afd_min,entrada):
+# función que simula la ejecución del afd mínimo para procesar y validar una entrada
+    # el primer estado que visitaremos será el estado inicial
+    estado_actual = afd_min['origen']
+    # para cada caracter en la entrada
+    for caracter in entrada:
+        # el proximo estado será igual a invalido si no se encuentra ningun símbolo igual al caracter de entrada
+        proximo_estado = "invalido"
+        # si el estado actual es invalido entonces salimos del loop for y estaremos en un estado no final
+        if estado_actual == "invalido":
+            break
+        # para el estado actual miramos a que estado lleva ese caracter
+        for transicion in afd_min[estado_actual]:
+            # si encontramos la transicion con el caracter actual
+            if transicion[0] == caracter:
+                # cargamos el estado al que lleva esa transicion
+                proximo_estado = str(transicion[1])
+        # actualizamos el estado actual
+        estado_actual = proximo_estado
+    # si el último estado visitado es final entonces la entrada es valida
+    if estado_actual in afd_min['final']:
+        print('entrada válida')
+    else:
+        print('entrada inválida')
+    print('end')
+
 def eliminar_estados_inalcanzables(afd_min,cant_simbolos):
 # función que se encarga de eliminar los estados redudantes del afd para que sea minimo
     # realizamos una copia del afd para ir verificando si existen modificaciones
@@ -373,17 +400,19 @@ lista_simbolos = ["a","b"]
 # obtenemos la matriz del afd
 dtran_afd = get_AFD(afn_test,lista_simbolos)
 # print(dtran_afd)
-# afd_min = get_AFD_minimo(dtran_afd, lista_simbolos)
-afd_min = {
-    'A': [['a','B'],['b','B']],
-    'B': [['a','B'],['b','C']],
-    'C': [['a','B'],['b','C']],
-    'D': [['a','B'],['b','C']],
-    'E': [['a','B'],['b','E']],
-    'F': [['a','B'],['b','E']],
-    'origen': 'A',
-    'final':['D']
-}
+afd_min = get_AFD_minimo(dtran_afd, lista_simbolos)
+# afd_min_test = {
+#     'A': [['a','B'],['b','B']],
+#     'B': [['a','B'],['b','C']],
+#     'C': [['a','B'],['b','C']],
+#     'D': [['a','B'],['b','C']],
+#     'E': [['a','B'],['b','E']],
+#     'F': [['a','B'],['b','E']],
+#     'origen': 'A',
+#     'final':['D']
+# }
 # eliminamos los estados inalcanzables
 eliminar_estados_inalcanzables(afd_min,len(lista_simbolos))
+entrada_test='ababb'
+simulador_afd(afd_min,entrada_test)
 print("final")
