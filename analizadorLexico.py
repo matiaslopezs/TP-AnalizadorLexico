@@ -30,6 +30,7 @@ def simulador_afd(afd_min,entrada):
         proximo_estado = "invalido"
         # si el estado actual es invalido entonces salimos del loop for y estaremos en un estado no final
         if estado_actual == "invalido":
+            print('caracter no definido')
             break
         # para el estado actual miramos a que estado lleva ese caracter
         for transicion in afd_min[estado_actual]:
@@ -256,7 +257,7 @@ def get_nuevo_estado():
     estado += 1
     return estado
 
-def thompson(op1, operador, op2, expresion):
+def thompson(op1, operador, op2, afn1, afn2):
 # 3. Convertimos las producciones en AFN con Thompson
 # función que transforma cada parte de la expresión regular en un AFN
     # solo en los estados de concatenacion el estado inicial y final no seran nuevos estados
@@ -303,7 +304,7 @@ def evaluar_entrada_rec(expresion):
     print("nueva recursion: {}".format(expresion))
     
     # quitamos los parentesis de la expresion
-    if expresion[0] == "(" and expresion[-1]==")" and not buscar_parentesis(expresion[1:-1]):
+    if expresion[0] == "(" and expresion[-1]==")": # and not buscar_parentesis(expresion[1:-1]):
         expresion = expresion[1:-1]
         print("quitamos los parentesis => {}".format(expresion))
 
@@ -311,15 +312,14 @@ def evaluar_entrada_rec(expresion):
     if expresion not in lista_operadores and len(expresion) == 1:
         print(expresion)
         # transformamos la expresión en un AFN
-        thompson(expresion,"base","",expresion)
+        # thompson(expresion,"base",None,None,None)
         return expresion
     # dividimos la expresión en operandos y operador
     op1 = op2 = operador = ""
-    band = False
+    band = band_asterisco = False
     parentesis_cerrado = parentesis_abierto = 0
     # para cada caracter recorremos en reversa porque las operaciones deben hacerse de izquierda a derecha
     for caracter in expresion[::-1]:
-        # print("entra aca: {}".format(caracter))
         # Debemos tener en cuentra procesar los paréntesis primero
         # como está recorriendo al revés buscamos primero el ")"
         if caracter == ")":
@@ -329,14 +329,15 @@ def evaluar_entrada_rec(expresion):
             parentesis_abierto += 1    
         # caso en el que venga un operador, lo guardamos y empezamos a cargar el siguiente operando
         elif caracter in lista_operadores and not band:
-            # print(parentesis_abierto)
-            # print(parentesis_cerrado)    
-            # print("se encuentra operador")
             # solamente si se cerraron todos los paréntesis pasamos al siguiente operando
             if parentesis_abierto == parentesis_cerrado:
-                operador = caracter
-                band = True
-                continue
+                # * es un caso especial
+                if caracter != '*':
+                    operador = caracter
+                    band = True
+                    continue
+                else:
+                    band_asterisco = True
         # mientras la bandera esté apagada estaremos cargando el segundo operando (ya que va en reversa)
         if not band: 
             op2 += caracter
@@ -346,18 +347,30 @@ def evaluar_entrada_rec(expresion):
     # volvemos a dar la vuelta a los operandos
     op1 = op1[::-1]
     op2 = op2[::-1]
+    # verificamos si existe * en la expresion
+    if band_asterisco:
+        # verificamos que no exista otro operador
+        if operador == "":
+            # quitamos el * de la operacion
+            op2 = op2[:-1]
+            # el operador será *
+            operador = '*'
+
     print("al salir op1: {} oper: {} op2: {}".format(op1,operador,op2))
     # evaluamos y desarmamos cada expresion
     if op1 != "":
-        print("op1: {} operador: {} op2: {}".format(evaluar_entrada_rec(op1),operador,evaluar_entrada_rec(op2)))
+        exp1 = evaluar_entrada_rec(op1) 
+        exp2 = evaluar_entrada_rec(op2)
+        print("op1: {} operador: {} op2: {}".format(exp1,operador,exp2))
         # transformamos a un AFN la expresión
-        thompson(op1,operador,op2,expresion)
+        # nuevo_afn = thompson(op1,operador,op2,afn1,afn2)
     # el 2do operando podría ser vacío (Ej: a*)
-    else:
-        print("op1: {} operador: {} ".format(evaluar_entrada_rec(op2),operador))
+    else: 
+        exp2 = evaluar_entrada_rec(op2)
+        print("op1: {} operador: {} ".format(exp2,operador))
         # transformamos a un AFN la expresión
-        thompson(op1,operador,"",expresion)
-    return expresion
+        # nuevo_afn = thompson(op2,operador,None,None,afn2)
+    return expresion#,nuevo_afn
     
 
 
@@ -393,28 +406,28 @@ def main():
         print("AFN:")
         print(afn)
 
-# main()
-afn_test = [[0,"$",1],[1,"$",2],[1,"$",4],[2,"a",3],[4,"b",5],[3,"$",6],[5,"$",6],[6,"$",7],[6,"$",1],[0,"$",7],[7,"a",8],[8,"b",9],[9,"b",10]]
-lista_simbolos = ["a","b"]
-# obtenemos la matriz del afd
-dtran_afd = get_AFD(afn_test,lista_simbolos)
-# print(dtran_afd)
-afd_min = get_AFD_minimo(dtran_afd, lista_simbolos)
-# afd_min_test = {
-#     'A': [['a','B'],['b','B']],
-#     'B': [['a','B'],['b','C']],
-#     'C': [['a','B'],['b','C']],
-#     'D': [['a','B'],['b','C']],
-#     'E': [['a','B'],['b','E']],
-#     'F': [['a','B'],['b','E']],
-#     'origen': 'A',
-#     'final':['D']
-# }
-# eliminamos los estados inalcanzables
-eliminar_estados_inalcanzables(afd_min,len(lista_simbolos))
-entrada_test='ababb abb ababa baabb'
-for palabra in entrada_test.split():
-    print(palabra)
-    simulador_afd(afd_min,palabra)
-    print('___')
+main()
+# afn_test = [[0,"$",1],[1,"$",2],[1,"$",4],[2,"a",3],[4,"b",5],[3,"$",6],[5,"$",6],[6,"$",7],[6,"$",1],[0,"$",7],[7,"a",8],[8,"b",9],[9,"b",10]]
+# lista_simbolos = ["a","b"]
+# # obtenemos la matriz del afd
+# dtran_afd = get_AFD(afn_test,lista_simbolos)
+# # print(dtran_afd)
+# afd_min = get_AFD_minimo(dtran_afd, lista_simbolos)
+# # afd_min_test = {
+# #     'A': [['a','B'],['b','B']],
+# #     'B': [['a','B'],['b','C']],
+# #     'C': [['a','B'],['b','C']],
+# #     'D': [['a','B'],['b','C']],
+# #     'E': [['a','B'],['b','E']],
+# #     'F': [['a','B'],['b','E']],
+# #     'origen': 'A',
+# #     'final':['D']
+# # }
+# # eliminamos los estados inalcanzables
+# eliminar_estados_inalcanzables(afd_min,len(lista_simbolos))
+# entrada_test='ababb abb ababa baabb'
+# for palabra in entrada_test.split():
+#     print(palabra)
+#     simulador_afd(afd_min,palabra)
+#     print('___')
 print("final")
