@@ -358,15 +358,11 @@ def buscar_parentesis(expresion):
 
 def evaluar_entrada_rec(expresion):
 # evaluamos la gramática de entrada y vamos dividiendo en operadores y operandos de forma recursiva
-    # print("nueva recursion: {}".format(expresion))
     # quitamos los parentesis de la expresion
     if expresion[0] == "(" and expresion[-1]==")": # and not buscar_parentesis(expresion[1:-1]):
         expresion = expresion[1:-1]
-        # print("quitamos los parentesis => {}".format(expresion))
-
     # Caso Base: si la expresión es un caracter diferente a la lista de operadores de Thompson
     if expresion not in lista_operadores and len(expresion) == 1:
-        # print(expresion)
         # transformamos la expresión en un AFN
         nuevo_afn = thompson(expresion,"base",None,None,None)
         return expresion,nuevo_afn
@@ -411,19 +407,15 @@ def evaluar_entrada_rec(expresion):
             op2 = op2[:-1]
             # el operador será *
             operador = '*'
-
-    # print("al salir op1: {} oper: {} op2: {}".format(op1,operador,op2))
     # evaluamos y desarmamos cada expresion
     if op1 != "":
         exp1,afn1 = evaluar_entrada_rec(op1) 
         exp2,afn2 = evaluar_entrada_rec(op2)
-        # print("op1: {} operador: {} op2: {}".format(exp1,operador,exp2))
         # transformamos a un AFN la expresión
         nuevo_afn = thompson(op1,operador,op2,afn1,afn2)
     # el 2do operando podría ser vacío (Ej: a*)
     else: 
         exp2,afn2 = evaluar_entrada_rec(op2)
-        # print("op1: {} operador: {} ".format(exp2,operador))
         # transformamos a un AFN la expresión
         nuevo_afn = thompson(op2,operador,None,afn2,None)
     return expresion,nuevo_afn
@@ -441,11 +433,15 @@ def main():
         print("La expresión ingresada es "+entrada)
         # dividimos en lado derecho e izquierdo con split
         expresion = entrada.split("->")
-        # agregamos a la lista el no terminal
-        tokens.append(expresion[0])
-        print("No terminal: {}".format(tokens[i]))
-        i+=1
-        expresiones_regulares.append(expresion[1])
+        # si el token no es igual a otro token ya ingresado
+        if expresion[0] not in tokens and expresion[1] not in expresiones_regulares:
+            # agregamos a la lista el no terminal
+            tokens.append(expresion[0])
+            print("No terminal: {}".format(tokens[i]))
+            i+=1
+            expresiones_regulares.append(expresion[1])
+        else:
+            print("ERROR: valores repetidos introducidos")
         print("ingrese la siguiente expresión:")
         entrada = input()
 
@@ -502,5 +498,4 @@ def main():
         simulador_afd(afd_minimo,palabra)
     print('fin')
     
-
 main()
