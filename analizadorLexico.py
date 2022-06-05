@@ -5,9 +5,6 @@
  Consideraciones:
     valores prohibidos para los lexemas: ->, |, *, ., (, ), & (que simboliza a vacío)
 """
-
-# http://micaminomaster.com.co/grafo-algoritmo/todo-trabajar-grafos-python/
-
 # variables globales:
 tokens = [] # lista de no terminales o tokens
 expresiones_regulares = [] # lista de lados izquierdos
