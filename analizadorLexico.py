@@ -485,17 +485,21 @@ def main():
         if(elemento[0] == 'origen'):
             print('---------'*len(lista_simbolos))
         print(elemento[0], end='\t')
-        if(elemento[0]!= 'origen'):
+        if(elemento[0]!= 'origen' and elemento[0]!= 'final'):
             imprimir_lista_en_linea(elemento[1])
-        else:
+        elif(elemento[0] == 'origen'):
             print(elemento[1])
+        else:
+            estados_finales = [x for x in elemento[1]]
+            for i in range(len(estados_finales)):
+                print(estados_finales[i],end='\t')
     print()
     # 5. ahora simulamos la ejecución del analizador léxico 
     entrada_test='ababb abb abc ababa baabb'
     for palabra in entrada_test.split():
+        print('___')
         print(palabra)
         simulador_afd(afd_minimo,palabra)
-        print('___')
     print('fin')
     
 
