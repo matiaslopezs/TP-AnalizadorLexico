@@ -156,6 +156,8 @@ def get_AFD_minimo(dtran_afd,simbolos):
         if 'final' not in afd_minimo.keys():
             afd_minimo['final'] = []
         afd_minimo['final'].append(str(get_grupo(estado_final,pi)))
+    # descartamos los elementos repetidos en el item de key 'final'
+    afd_minimo['final'] = list(set(afd_minimo["final"]))
     return afd_minimo
 
 def get_key_valor_afd(dic_AFD,valor):
@@ -243,9 +245,11 @@ def get_AFD(afn,lista_simbolos):
     # guardamos en el afd todos los estados finales que guardamos en el diccionario global de estados
     for estado_final in dic_estados_finales.values():
         if "final" not in dtran.keys():
+            # hacemos un set para no tener elementos repetidos
             dtran["final"] = []
-        dtran["final"]+= get_key_valor_afd(dic_AFD,estado_final)
-    # print(dtran)
+        dtran["final"] += get_key_valor_afd(dic_AFD,estado_final)
+    # transformamos el item con key 'final' en una lista
+    dtran["final"] = list(set(dtran["final"]))
     return dtran
 
 def get_lista_simbolos(afn):
