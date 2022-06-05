@@ -501,11 +501,14 @@ def main():
                 print(estados_finales[i],end='\t')
     print()
     # 5. ahora simulamos la ejecución del analizador léxico 
-    entrada_test='ababb abb abc ababa baabb cbb'
-    for palabra in entrada_test.split():
+    # solicitamos al usuario que ingrese una cadena de entrada
+    print("Ahora ingrese una cadena de entrada (separar con espacios cada lexema)")
+    cadena_entrada = input()
+    # entrada_test='ababb abb abc ababa baabb cbb'
+    for lexema in cadena_entrada.split():
         print('___')
-        print(palabra)
-        simulador_afd(afd_minimo,palabra)
+        print(lexema)
+        simulador_afd(afd_minimo,lexema)
     print('fin')
     
 main()
