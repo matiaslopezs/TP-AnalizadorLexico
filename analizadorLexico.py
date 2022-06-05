@@ -15,8 +15,15 @@ tokens = [] # lista de no terminales o tokens
 expresiones_regulares = [] # lista de lados izquierdos
 lista_operadores = ["|","*","."] # lista de operadores de Thompson
 estado = 0 #inicializamos el contador de estados en 0
-dic_estados_finales = {} # diccionario que contendra todos los AFN
+dic_estados_finales = {} # diccionario que contendra todos los tokens con el estado final de su AFN y su AFD
 
+
+def estado_final_a_token(estado_actual):
+# función que recibe un estado final y retorna a que token pertenece
+    for token,valores in dic_estados_finales.items():
+        # comparamos el estado actual con cada estado final de AFD mapeado a un token en el diccionario
+        if estado_actual == valores[1]:
+            return token
 
 def simulador_afd(afd_min,entrada):
 # función que simula la ejecución del afd mínimo para procesar y validar una entrada
@@ -40,7 +47,9 @@ def simulador_afd(afd_min,entrada):
         estado_actual = proximo_estado
     # si el último estado visitado es final entonces la entrada es valida
     if estado_actual in afd_min['final']:
-        print('entrada válida')
+        token_actual = estado_final_a_token(estado_actual)
+        print('Entrada válida. Pertenece al token: {}'.format(token_actual))
+        
     else:
         print('entrada inválida')
 
@@ -249,11 +258,16 @@ def get_AFD(afn,lista_simbolos):
     # por último guardamos en el diccionario cuales son el estado origen y los estados finales del AFD
     dtran["origen"] = get_key_valor_afd(dic_AFD,afn[0][0])
     # guardamos en el afd todos los estados finales que guardamos en el diccionario global de estados
-    for estado_final in dic_estados_finales.values():
+    estados_finales_afn = [value for value in dic_estados_finales.values()]
+    keys_est_finales = [clave for clave in dic_estados_finales.keys()]
+    for l in range(len(estados_finales_afn)):
         if "final" not in dtran.keys():
             # hacemos un set para no tener elementos repetidos
             dtran["final"] = []
-        dtran["final"] += get_key_valor_afd(dic_AFD,estado_final)
+        est_fin_afd = get_key_valor_afd(dic_AFD,estados_finales_afn[l][0])
+        dtran["final"] += est_fin_afd
+        # guardamos también en el diccionario de estados finales
+        dic_estados_finales[keys_est_finales[l]].append(str(est_fin_afd))
     # transformamos el item con key 'final' en una lista
     dtran["final"] = list(set(dtran["final"]))
     return dtran
@@ -448,7 +462,7 @@ def main():
         for sim in get_lista_simbolos(afn):
             lista_simbolos.add(sim)
         # guardamos en el diccionario a cada token con su estado final (obtenido de su afn)
-        dic_estados_finales[tokens[j]] = afn[-1][2]
+        dic_estados_finales[tokens[j]] = [afn[-1][2]]
         # luego creamos la transicion vacía de o' al primer estado del afn
         afn_completo.append([0,"&",afn[0][0]])
         # y agregamos al afn unico que representara a la definicion regular completa
@@ -475,25 +489,14 @@ def main():
             imprimir_lista_en_linea(elemento[1])
         else:
             print(elemento[1])
+    print()
     # 5. ahora simulamos la ejecución del analizador léxico 
-    # entrada_test='ababb abb ababa baabb'
-    # for palabra in entrada_test.split():
-    #     print(palabra)
-    #     simulador_afd(afd_min,palabra)
-    #     print('___')
+    entrada_test='ababb abb abc ababa baabb'
+    for palabra in entrada_test.split():
+        print(palabra)
+        simulador_afd(afd_minimo,palabra)
+        print('___')
     print('fin')
     
 
 main()
-# afn_test = [[0,"$",1],[1,"$",2],[1,"$",4],[2,"a",3],[4,"b",5],[3,"$",6],[5,"$",6],[6,"$",7],[6,"$",1],[0,"$",7],[7,"a",8],[8,"b",9],[9,"b",10]]
-# # afd_min_test = {
-# #     'A': [['a','B'],['b','B']],
-# #     'B': [['a','B'],['b','C']],
-# #     'C': [['a','B'],['b','C']],
-# #     'D': [['a','B'],['b','C']],
-# #     'E': [['a','B'],['b','E']],
-# #     'F': [['a','B'],['b','E']],
-# #     'origen': 'A',
-# #     'final':['D']
-# # }
-# entrada_test='ababb abb ababa baabb'
