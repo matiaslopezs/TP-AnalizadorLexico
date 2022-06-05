@@ -44,6 +44,12 @@ def simulador_afd(afd_min,entrada):
     else:
         print('entrada inválida')
 
+def imprimir_lista_en_linea(fila_afd):
+# funcion para dar forma a la impresión de una linea del afd
+    for elemento in fila_afd:
+        print(elemento[1],end='\t')
+    print()
+
 def eliminar_estados_inalcanzables(afd_min,cant_simbolos):
 # función que se encarga de eliminar los estados redudantes del afd para que sea minimo
     # realizamos una copia del afd para ir verificando si existen modificaciones
@@ -338,17 +344,15 @@ def buscar_parentesis(expresion):
 
 def evaluar_entrada_rec(expresion):
 # evaluamos la gramática de entrada y vamos dividiendo en operadores y operandos de forma recursiva
-
-    print("nueva recursion: {}".format(expresion))
-    
+    # print("nueva recursion: {}".format(expresion))
     # quitamos los parentesis de la expresion
     if expresion[0] == "(" and expresion[-1]==")": # and not buscar_parentesis(expresion[1:-1]):
         expresion = expresion[1:-1]
-        print("quitamos los parentesis => {}".format(expresion))
+        # print("quitamos los parentesis => {}".format(expresion))
 
     # Caso Base: si la expresión es un caracter diferente a la lista de operadores de Thompson
     if expresion not in lista_operadores and len(expresion) == 1:
-        print(expresion)
+        # print(expresion)
         # transformamos la expresión en un AFN
         nuevo_afn = thompson(expresion,"base",None,None,None)
         return expresion,nuevo_afn
@@ -394,18 +398,18 @@ def evaluar_entrada_rec(expresion):
             # el operador será *
             operador = '*'
 
-    print("al salir op1: {} oper: {} op2: {}".format(op1,operador,op2))
+    # print("al salir op1: {} oper: {} op2: {}".format(op1,operador,op2))
     # evaluamos y desarmamos cada expresion
     if op1 != "":
         exp1,afn1 = evaluar_entrada_rec(op1) 
         exp2,afn2 = evaluar_entrada_rec(op2)
-        print("op1: {} operador: {} op2: {}".format(exp1,operador,exp2))
+        # print("op1: {} operador: {} op2: {}".format(exp1,operador,exp2))
         # transformamos a un AFN la expresión
         nuevo_afn = thompson(op1,operador,op2,afn1,afn2)
     # el 2do operando podría ser vacío (Ej: a*)
     else: 
         exp2,afn2 = evaluar_entrada_rec(op2)
-        print("op1: {} operador: {} ".format(exp2,operador))
+        # print("op1: {} operador: {} ".format(exp2,operador))
         # transformamos a un AFN la expresión
         nuevo_afn = thompson(op2,operador,None,afn2,None)
     return expresion,nuevo_afn
@@ -457,7 +461,27 @@ def main():
     afd_min = get_AFD_minimo(dtran_afd, list(lista_simbolos))
     # 4.1 eliminamos los estados inalcanzables
     afd_minimo = eliminar_estados_inalcanzables(afd_min,len(lista_simbolos))
-    print(afd_minimo)
+    # 4.2 imprimimos en consola la tabla del AFD mínimo
+    print("\nTabla del AFD Mínimo\n")
+    print("Estado", end='\t')
+    for simb in lista_simbolos:
+        print(simb, end='\t')
+    print()
+    for elemento in afd_minimo.items():
+        if(elemento[0] == 'origen'):
+            print('---------'*len(lista_simbolos))
+        print(elemento[0], end='\t')
+        if(elemento[0]!= 'origen'):
+            imprimir_lista_en_linea(elemento[1])
+        else:
+            print(elemento[1])
+    # 5. ahora simulamos la ejecución del analizador léxico 
+    # entrada_test='ababb abb ababa baabb'
+    # for palabra in entrada_test.split():
+    #     print(palabra)
+    #     simulador_afd(afd_min,palabra)
+    #     print('___')
+    print('fin')
     
 
 main()
@@ -473,8 +497,3 @@ main()
 # #     'final':['D']
 # # }
 # entrada_test='ababb abb ababa baabb'
-# for palabra in entrada_test.split():
-#     print(palabra)
-#     simulador_afd(afd_min,palabra)
-#     print('___')
-print("final")
