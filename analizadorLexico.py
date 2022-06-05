@@ -8,14 +8,13 @@
 
 # http://micaminomaster.com.co/grafo-algoritmo/todo-trabajar-grafos-python/
 
-import math
-
 # variables globales:
 tokens = [] # lista de no terminales o tokens
 expresiones_regulares = [] # lista de lados izquierdos
 lista_operadores = ["|","*","."] # lista de operadores de Thompson
 estado = 0 #inicializamos el contador de estados en 0
 dic_estados_finales = {} # diccionario que contendra todos los tokens con el estado final de su AFN y su AFD
+tabla_de_simbolos = {} # tabla que almacena los lexemas que son válidos para cada token
 
 
 def estado_final_a_token(estado_actual):
@@ -48,10 +47,12 @@ def simulador_afd(afd_min,entrada):
     # si el último estado visitado es final entonces la entrada es valida
     if estado_actual in afd_min['final']:
         token_actual = estado_final_a_token(estado_actual)
+        # desplegamos en pantalla a que token pertenece el lexema
         print('Entrada válida. Pertenece al token: {}'.format(token_actual))
-        
+        # guardamos en la tabla de símbolos
+        tabla_de_simbolos[token_actual].append(entrada)
     else:
-        print('entrada inválida')
+        print('Error Léxico: Entrada inválida')
 
 def imprimir_lista_en_linea(fila_afd):
 # funcion para dar forma a la impresión de una linea del afd
@@ -454,6 +455,11 @@ def main():
             print("ERROR: valores repetidos introducidos")
         print("ingrese la siguiente expresión:")
         entrada = input()
+    # definimos las claves para la tabla de símbolos
+    # para cada token en la lista
+    for clave in tokens:
+        # creamos una lista para cada token
+        tabla_de_simbolos[clave] = []
 
     # 2. Crear el AFN con Thompson
     # uniremos todos los afn en uno solo con un origen o' en común
@@ -510,5 +516,12 @@ def main():
         print(lexema)
         simulador_afd(afd_minimo,lexema)
     print('fin')
+    # 6. Por último desplegamos la tabla de símbolos con los tokens y sus lexemas
+    print("\n\tTabla de Símbolos\t\n")
+    for clave_token, lexemas in tabla_de_simbolos.items():
+        print(clave_token, end=" |\t")
+        for lex in lexemas:
+            print(lex, end='\t')
+        print()
     
 main()
