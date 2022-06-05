@@ -22,7 +22,7 @@ def estado_final_a_token(estado_actual):
 # función que recibe un estado final y retorna a que token pertenece
     for token,valores in dic_estados_finales.items():
         # comparamos el estado actual con cada estado final de AFD mapeado a un token en el diccionario
-        if estado_actual == valores[1]:
+        if valores[2] == estado_actual:
             return token
 
 def simulador_afd(afd_min,entrada):
@@ -88,6 +88,14 @@ def eliminar_estados_inalcanzables(afd_min,cant_simbolos):
                     afd_min_new.pop(clave)
     #retornamos el afd minimo sin estados inalcanzables
     return afd_min_new
+
+def cargar_dic_tokens(estado_final,valor_a_cargar):
+# función que mapea el valor final del afd mínimo con su token
+    for clave,elemento in dic_estados_finales.items():
+        # verificamos la cantidad de elementos para no ingresar dos veces el mismo elemento
+        if estado_final in elemento[1] and len(elemento)<3:
+            # el valor a cargar es el estado final en el afd minimo
+            dic_estados_finales[clave].append(valor_a_cargar)
 
 def get_grupo(elemento, lista_grupos):
 # retorna el grupo en una lista de grupos al que pertenece un elemento
@@ -171,6 +179,8 @@ def get_AFD_minimo(dtran_afd,simbolos):
         if 'final' not in afd_minimo.keys():
             afd_minimo['final'] = []
         afd_minimo['final'].append(str(get_grupo(estado_final,pi)))
+        # además cargamos en el diccionario de tokens y estados finales
+        cargar_dic_tokens(estado_final,str(get_grupo(estado_final,pi)))
     # descartamos los elementos repetidos en el item de key 'final'
     afd_minimo['final'] = list(set(afd_minimo["final"]))
     return afd_minimo
@@ -267,7 +277,7 @@ def get_AFD(afn,lista_simbolos):
         est_fin_afd = get_key_valor_afd(dic_AFD,estados_finales_afn[l][0])
         dtran["final"] += est_fin_afd
         # guardamos también en el diccionario de estados finales
-        dic_estados_finales[keys_est_finales[l]].append(str(est_fin_afd))
+        dic_estados_finales[keys_est_finales[l]].append(est_fin_afd)
     # transformamos el item con key 'final' en una lista
     dtran["final"] = list(set(dtran["final"]))
     return dtran
@@ -491,7 +501,7 @@ def main():
                 print(estados_finales[i],end='\t')
     print()
     # 5. ahora simulamos la ejecución del analizador léxico 
-    entrada_test='ababb abb abc ababa baabb'
+    entrada_test='ababb abb abc ababa baabb cbb'
     for palabra in entrada_test.split():
         print('___')
         print(palabra)
