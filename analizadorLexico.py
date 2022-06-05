@@ -11,11 +11,11 @@
 import math
 
 # variables globales:
-noTerminales = [] # lista de no terminales
-terminales = [] # lista de terminales
+tokens = [] # lista de no terminales o tokens
+expresiones_regulares = [] # lista de lados izquierdos
 lista_operadores = ["|","*","."] # lista de operadores de Thompson
 estado = 0 #inicializamos el contador de estados en 0
-dic_AFN = {} # diccionario que contendra todos los AFN
+dic_estados_finales = {} # diccionario que contendra todos los AFN
 
 
 def simulador_afd(afd_min,entrada):
@@ -158,7 +158,6 @@ def get_AFD_minimo(dtran_afd,simbolos):
         afd_minimo['final'].append(str(get_grupo(estado_final,pi)))
     return afd_minimo
 
-
 def get_key_valor_afd(dic_AFD,valor):
 # funcion que devuelve la clave del diccionario si el valor de parámetro está en la lista del dic.
     respuesta = []
@@ -189,7 +188,7 @@ def cerradura_epsilon(afn,estado):
     resultado = [estado]
     for transicion in afn:
         # si va desde el estado actual con el símbolo entonces es parte de la respuesta
-        if transicion[0] == estado and transicion[1] == '$':
+        if transicion[0] == estado and transicion[1] == '&':
             resultado += cerradura_epsilon(afn,transicion[2])
     # retornamos el resultado
     return resultado
@@ -198,11 +197,9 @@ def get_AFD(afn,lista_simbolos):
 # función que transforma un AFN en un AFD. Recibe como parámetros al AFN y a los terminales del AFN
     # dtran es la matriz del AFD, en este caso será un diccionario de listas
     dtran = {}
-    menor_estado = afn[0][0]
-    mayor_estado = -math.inf
     # primero inicializamos destados con el estado inicial
     destados = []
-    destados.append(cerradura_epsilon(afn,menor_estado))
+    destados.append(cerradura_epsilon(afn,afn[0][0]))
     # guardaremos los nuevos estados en un diccionario
     nuevo_estado = estado_origen = 0
     destados[0].sort()
@@ -218,15 +215,13 @@ def get_AFD(afn,lista_simbolos):
             for estado in lista_estados:
                 # para cada estado en la lista aplicamos la función mover
                 estados_mover += mover(afn,estado,simbolo)
-                # aprovechamos y calculamos el estado mayor del afn
-                if mayor_estado < estado:
-                    mayor_estado = estado
-                    
             u = []
             # para cada estado devuelto por mover, agregamos a u
             for estado_mov in estados_mover:
                 u += cerradura_epsilon(afn,estado_mov)
             u.sort()
+            # quitamos los estados repetidos
+            u = list(set(u))
             # si es un nuevo estado
             if u not in dic_AFD.values():
                 nuevo_estado += 1
@@ -243,15 +238,31 @@ def get_AFD(afn,lista_simbolos):
             if estado_origen not in dtran.keys():
                 dtran[estado_origen] = []
             dtran[estado_origen].append([simbolo,estado_destino])
-    # por último guardamos en el diccionario cuales son el origen y el final del AFD
-    dtran["origen"] = get_key_valor_afd(dic_AFD,menor_estado)
-    dtran["final"] = get_key_valor_afd(dic_AFD,mayor_estado)
+    # por último guardamos en el diccionario cuales son el estado origen y los estados finales del AFD
+    dtran["origen"] = get_key_valor_afd(dic_AFD,afn[0][0])
+    # guardamos en el afd todos los estados finales que guardamos en el diccionario global de estados
+    for estado_final in dic_estados_finales.values():
+        if "final" not in dtran.keys():
+            dtran["final"] = []
+        dtran["final"]+= get_key_valor_afd(dic_AFD,estado_final)
     # print(dtran)
     return dtran
 
+def get_lista_simbolos(afn):
+# función que retorna un set (lista ordenada sin repetidos) de todos los símbolos de entrada de un afn
+    # creamos un set para que no hayan elementos repetidos
+    set_simbolos = set()
+    for transicion in afn:
+        # no debemos guardar el vacío ya que no forma parte del alfabeto de entrada
+        if transicion[1] != "&":
+            set_simbolos.add(transicion[1])
+    return set_simbolos
+        
+
 def get_nuevo_estado(ultimo_estado = estado):
-    # retorna un número aún no utilizado para denominar un estado (enviara a partir de 1, dejando a 0=origen sin asignar)
-    # el parametro ultimo estado es el ultimo estado conocido, de no mandarlo es la variable global estado
+# retorna un número aún no utilizado para denominar un estado (enviara a partir de 1, dejando a 0=origen sin asignar)
+# el parametro ultimo estado es el ultimo estado conocido, de no mandarlo es la variable global estado
+    # referenciamos a la variable global estado
     global estado
     estado += 1
     # si estado es menor al último estaado conocido entonces lo modificamos
@@ -409,30 +420,44 @@ def main():
         # dividimos en lado derecho e izquierdo con split
         expresion = entrada.split("->")
         # agregamos a la lista el no terminal
-        noTerminales.append(expresion[0])
-        print("No terminal: {}".format(noTerminales[i]))
+        tokens.append(expresion[0])
+        print("No terminal: {}".format(tokens[i]))
         i+=1
-        terminales.append(expresion[1])
+        expresiones_regulares.append(expresion[1])
         print("ingrese la siguiente expresión:")
         entrada = input()
 
     # 2. Crear el AFN con Thompson
+    # uniremos todos los afn en uno solo con un origen o' en común
+    afn_completo = []
+    # iremos guardando también los simbolos de entrada en las expresiones regulares
+    lista_simbolos = set()
     # primero debemos dividir la gramática de entrada en operandos
-    for terminal in terminales:
-        # para lado izquierdo reiniciamos los diccionarios
-        expres,afn = evaluar_entrada_rec(terminal)
-        print("Expresión:")
-        print(expres)
-        print("AFN:")
-        print(afn)
+    for j in range(len(expresiones_regulares)):
+        # para cada expresion hallamos su afn (utilizando las construcciones de thompson)
+        expres,afn = evaluar_entrada_rec(expresiones_regulares[j])
+        # cargamos los símbolos de transiciones en la lista de simbolos
+        for sim in get_lista_simbolos(afn):
+            lista_simbolos.add(sim)
+        # guardamos en el diccionario a cada token con su estado final (obtenido de su afn)
+        dic_estados_finales[tokens[j]] = afn[-1][2]
+        # luego creamos la transicion vacía de o' al primer estado del afn
+        afn_completo.append([0,"&",afn[0][0]])
+        # y agregamos al afn unico que representara a la definicion regular completa
+        afn_completo += afn
+    
+    # 3. Una vez que tenemos el afn que representa a la definicion regular completa, Hallamos el AFD
+    # obtenemos la matriz del afd
+    dtran_afd = get_AFD(afn_completo,list(lista_simbolos))
+    # 4. Optimizamos nuestro AFD obteniendo el AFD mínimo
+    afd_min = get_AFD_minimo(dtran_afd, list(lista_simbolos))
+    # 4.1 eliminamos los estados inalcanzables
+    afd_minimo = eliminar_estados_inalcanzables(afd_min,len(lista_simbolos))
+    print(afd_minimo)
+    
 
 main()
 # afn_test = [[0,"$",1],[1,"$",2],[1,"$",4],[2,"a",3],[4,"b",5],[3,"$",6],[5,"$",6],[6,"$",7],[6,"$",1],[0,"$",7],[7,"a",8],[8,"b",9],[9,"b",10]]
-# lista_simbolos = ["a","b"]
-# # obtenemos la matriz del afd
-# dtran_afd = get_AFD(afn_test,lista_simbolos)
-# # print(dtran_afd)
-# afd_min = get_AFD_minimo(dtran_afd, lista_simbolos)
 # # afd_min_test = {
 # #     'A': [['a','B'],['b','B']],
 # #     'B': [['a','B'],['b','C']],
@@ -443,8 +468,6 @@ main()
 # #     'origen': 'A',
 # #     'final':['D']
 # # }
-# # eliminamos los estados inalcanzables
-# eliminar_estados_inalcanzables(afd_min,len(lista_simbolos))
 # entrada_test='ababb abb ababa baabb'
 # for palabra in entrada_test.split():
 #     print(palabra)
