@@ -316,13 +316,12 @@ def thompson(op1, operador, op2, afn1, afn2):
         # cargamos cada elemento del primer afn exactamente como está
         for elemento1 in afn1:
             nuevo_afn.append(elemento1)
-        # a cada estado del afn2 le vamos sumando +1 (empezando desde el último estado del afn1)
-        valor = afn1[-1][2]
+        # el nuevo primer estado de afn2 debe ser el último estado del afn1
+        # todo elemento de afn2 debe decrementar en la cantidad del viejo 1er elemento menos el viejo 2do elemento
+        decremento = afn2[0][0] - afn1[-1][2]
         for elemento2 in afn2:
-            elemento2[0] = valor
-            valor += 1
-            elemento2[2] = valor
-            valor += 1
+            elemento2[0] -= decremento
+            elemento2[2] -= decremento
             nuevo_afn.append(elemento2)
     elif operador == "|":
         # agregamos dos transiciones vacías al inicio al primer estado de ambos afn
@@ -522,3 +521,4 @@ def main():
         print()
     
 main()
+# Caso a tener en cuenta: variable->a.(a|0|1)*
