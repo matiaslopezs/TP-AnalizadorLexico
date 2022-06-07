@@ -18,8 +18,9 @@ def estado_final_a_token(estado_actual):
 # función que recibe un estado final y retorna a que token pertenece
     for token,valores in dic_estados_finales.items():
         # comparamos el estado actual con cada estado final de AFD mapeado a un token en el diccionario
-        if valores[2] == estado_actual:
-            return token
+        for i in range(len(valores)):
+            if valores[i] == estado_actual:
+                return token
 
 def simulador_afd(afd_min,entrada):
 # función que simula la ejecución del afd mínimo para procesar y validar una entrada
@@ -87,47 +88,25 @@ def eliminar_estados_inalcanzables(afd_min,cant_simbolos):
     #retornamos el afd minimo sin estados inalcanzables
     return afd_min_new
 
-def separar_grupos_de_tokens_diferentes(grupo):
-# si los elementos de un grupo son todos de tokens diferentes, entonces los separamos
-    resultado = []
-    diccionario_elemento_token = {}
-    for elemento in grupo:
-        lista_tokens = set()
-        # para cada valor en el diccionario lo compararemos con cada elemento del grupo
-        for token, valor in dic_estados_finales.items():
-            # si el elemento está en la lista de valores del token
-            if elemento in valor[1]:
-                # guardamos el token en la lista de tokens a los que pertenece el elemento
-                lista_tokens.add(token)
-        # luego lo almacenamos en el diccionario
-        diccionario_elemento_token[elemento] = lista_tokens
-    # ahora comparamos cada lista hasta encontrar elementos en mismas listas
-    for clave, lista in diccionario_elemento_token.items():
-        band = False
-        for clave_comp, lista_comp in diccionario_elemento_token.items():
-            # no nos interesa compararlo consigo mismo
-            if clave != clave_comp:
-                # si alguno contiene al otro
-                if lista.issubset(lista_comp) or lista_comp.issubset(lista):
-                    # los guardamos juntos
-                    nueva_lista = [clave,clave_comp]
-                    band = True
-                    # verificamos no meter repetidos
-                    nueva_lista.sort()
-                    if nueva_lista not in resultado:
-                        resultado.append(nueva_lista)
-        # luego de comparar todos, si aún no se cargó la clave, lo cargamos
-        if not band:
-            nueva_lista = [clave]
-            if nueva_lista not in resultado:
-                    resultado.append(nueva_lista)
-    return resultado
+def eliminar_repetidos_dic_estados_finales():
+# función que se encarga de eliminar las salidas repetidas en la lista de salidas que se mapea con cada token
+    for clave,elemento in dic_estados_finales.items():
+        # vaciamos momentaneamente cada elemento para eliminar los valores que ya no nos sirven
+        dic_estados_finales[clave] = []
+        # creamos un set para evitar elementos repetidos
+        set_auxiliar = set()
+        # a partir del elemento en el campo 3 de la lista nos sirve
+        for i in range(2,len(elemento)):
+            set_auxiliar.add(elemento[i])
+        # al tener todos los elementos sin repetir los volvemos a convertir en lista
+        lista_auxiliar = list(set_auxiliar)
+        # guardamos la lista en el diccionario bajo la clave igual a su token equivalente
+        dic_estados_finales[clave] = lista_auxiliar
 
 def cargar_dic_tokens(estado_final,valor_a_cargar):
 # función que mapea el valor final del afd mínimo con su token
     for clave,elemento in dic_estados_finales.items():
-        # verificamos la cantidad de elementos para no ingresar dos veces el mismo elemento
-        if estado_final in elemento[1] and len(elemento)<3:
+        if estado_final in elemento[1]:
             # el valor a cargar es el estado final en el afd minimo
             dic_estados_finales[clave].append(valor_a_cargar)
 
@@ -194,18 +173,6 @@ def get_AFD_minimo(dtran_afd,simbolos):
                 # luego añadimos la lista a pi nueva si es que el grupo de la lista aún no se encuentra
                 if lista not in pi_nueva:
                     pi_nueva.append(lista)
-    # Ahora nos encargamos de separar los estados finales que no corresponden a tokens equivalentes
-    # verificamos los grupos en los que hay estados finales
-    for group in pi_nueva:
-        for elem_f in group:
-            # si el elemento está entre los elementos finales
-            if elem_f in f:
-                # sacamos el grupo
-                pi.remove(group)
-                # añadimos de vuelta el grupo o los grupos que resultaron de dividir
-                pi += separar_grupos_de_tokens_diferentes(group)
-                break
-    # declaramos un dic donde guardaremos el AFD mínimo
     afd_minimo = {}
     # ya tenemos los estados, ahora veremos las relaciones entre ellos
     for elemento in pi:
@@ -550,14 +517,16 @@ def main():
                 print(estados_finales[i],end='\t')
     print()
     # 5. ahora simulamos la ejecución del analizador léxico 
+    # antes de llamar al simulador nos encargamos de eliminar los elementos repetidos en el diccionario de estados finales global
+    eliminar_repetidos_dic_estados_finales()
     # solicitamos al usuario que ingrese una cadena de entrada
     print("Ahora ingrese una cadena de entrada (separar con espacios cada lexema)")
     cadena_entrada = input()
-    # entrada_test='ababb abb abc ababa baabb cbb'
     for lexema in cadena_entrada.split():
         print('___')
         print(lexema)
         simulador_afd(afd_minimo,lexema)
+    print('___')
     print('fin')
     # 6. Por último desplegamos la tabla de símbolos con los tokens y sus lexemas
     print("\n\tTabla de Símbolos\t\n")
