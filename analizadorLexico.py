@@ -87,6 +87,42 @@ def eliminar_estados_inalcanzables(afd_min,cant_simbolos):
     #retornamos el afd minimo sin estados inalcanzables
     return afd_min_new
 
+def separar_grupos_de_tokens_diferentes(grupo):
+# si los elementos de un grupo son todos de tokens diferentes, entonces los separamos
+    resultado = []
+    diccionario_elemento_token = {}
+    for elemento in grupo:
+        lista_tokens = set()
+        # para cada valor en el diccionario lo compararemos con cada elemento del grupo
+        for token, valor in dic_estados_finales.items():
+            # si el elemento está en la lista de valores del token
+            if elemento in valor[1]:
+                # guardamos el token en la lista de tokens a los que pertenece el elemento
+                lista_tokens.add(token)
+        # luego lo almacenamos en el diccionario
+        diccionario_elemento_token[elemento] = lista_tokens
+    # ahora comparamos cada lista hasta encontrar elementos en mismas listas
+    for clave, lista in diccionario_elemento_token.items():
+        band = False
+        for clave_comp, lista_comp in diccionario_elemento_token.items():
+            # no nos interesa compararlo consigo mismo
+            if clave != clave_comp:
+                # si alguno contiene al otro
+                if lista.issubset(lista_comp) or lista_comp.issubset(lista):
+                    # los guardamos juntos
+                    nueva_lista = [clave,clave_comp]
+                    band = True
+                    # verificamos no meter repetidos
+                    nueva_lista.sort()
+                    if nueva_lista not in resultado:
+                        resultado.append(nueva_lista)
+        # luego de comparar todos, si aún no se cargó la clave, lo cargamos
+        if not band:
+            nueva_lista = [clave]
+            if nueva_lista not in resultado:
+                    resultado.append(nueva_lista)
+    return resultado
+
 def cargar_dic_tokens(estado_final,valor_a_cargar):
 # función que mapea el valor final del afd mínimo con su token
     for clave,elemento in dic_estados_finales.items():
@@ -158,6 +194,17 @@ def get_AFD_minimo(dtran_afd,simbolos):
                 # luego añadimos la lista a pi nueva si es que el grupo de la lista aún no se encuentra
                 if lista not in pi_nueva:
                     pi_nueva.append(lista)
+    # Ahora nos encargamos de separar los estados finales que no corresponden a tokens equivalentes
+    # verificamos los grupos en los que hay estados finales
+    for group in pi_nueva:
+        for elem_f in group:
+            # si el elemento está entre los elementos finales
+            if elem_f in f:
+                # sacamos el grupo
+                pi.remove(group)
+                # añadimos de vuelta el grupo o los grupos que resultaron de dividir
+                pi += separar_grupos_de_tokens_diferentes(group)
+                break
     # declaramos un dic donde guardaremos el AFD mínimo
     afd_minimo = {}
     # ya tenemos los estados, ahora veremos las relaciones entre ellos
